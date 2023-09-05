@@ -39,9 +39,9 @@ int main()
 	InitWindow(windowDimensions[0], windowDimensions[1], "Dapper Dasher");
 	SetTargetFPS(60);
 
-	//Nebula variables
+	// Nebula variables
 	Texture2D nebulaTex = LoadTexture("textures/12_nebula_spritesheet.png");
-	const int nebNum = 6;
+	const int nebNum = 10;
 	AnimData nebulae[nebNum]{ };
 	nebulae[0].pos.x = windowDimensions[0];
 	for (int i = 0; i < nebNum; i++)
@@ -56,6 +56,8 @@ int main()
 		nebulae[i].updateTime = { 1.0 / 16.0 };
 		nebulae[i].pos.x = windowDimensions[0] + i * 300;
 	}
+
+	float finishLine{ nebulae[nebNum - 1].pos.x };
 
 	// Scarfy variables
 	Texture2D scarfy = LoadTexture("textures/scarfy.png");
@@ -82,6 +84,9 @@ int main()
 	float bgX{ };
 	float mgX{ };
 	float fgX{ };
+
+	// Collision detection boolean
+	bool collision{ };
 
 	// Render loop
 	while (!WindowShouldClose())
@@ -157,16 +162,58 @@ int main()
 			updateAnimData(scarfyData, dT, 1, 6, 6);
 		}
 
+		// Update finish line position
+		finishLine += nebulaVelocity * dT;
+
+		for (const AnimData& nebula : nebulae)
+		{
+			float pad{ 50 };
+			Rectangle nebRec
+			{
+				nebula.pos.x + pad,
+				nebula.pos.y + pad,
+				nebula.rec.width - pad * 2,
+				nebula.rec.height - pad * 2
+			};
+			Rectangle scarfyRec
+			{
+				scarfyData.pos.x,
+				scarfyData.pos.y,
+				scarfyData.rec.width,
+				scarfyData.rec.height
+			};
+
+			if (CheckCollisionRecs(nebRec, scarfyRec))
+			{
+				collision = true;
+			}
+		}
+
 		// Loop to handle nebula calculations
 		for (AnimData& nebula : nebulae)
 		{
 			nebula.pos.x += nebulaVelocity * dT;
 			updateAnimData(nebula, dT, 8, 8, 5);
-			DrawTextureRec(nebulaTex, nebula.rec, nebula.pos, WHITE);
 			nebula.runningTime += dT;
 		}
-		DrawTextureRec(scarfy, scarfyData.rec, scarfyData.pos, WHITE);
 
+		// Collision detected, game over
+		if (collision)
+		{
+			DrawText("Game Over!", windowDimensions[0] / 3, windowDimensions[1] / 2, 36, RED);
+		}
+		else if (scarfyData.pos.x > finishLine)
+		{
+			DrawText("You Win!", windowDimensions[0] / 3, windowDimensions[1] / 2, 36, GREEN);
+		}
+		else
+		{
+			for (const AnimData& nebula : nebulae)
+			{
+				DrawTextureRec(nebulaTex, nebula.rec, nebula.pos, WHITE);
+			}
+			DrawTextureRec(scarfy, scarfyData.rec, scarfyData.pos, WHITE);
+		}
 		EndDrawing();
 
 		scarfyData.runningTime += dT;
