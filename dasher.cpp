@@ -9,6 +9,29 @@ struct AnimData
 	float updateTime;
 };
 
+bool isOnGround(const AnimData& data, int windowHeight)
+{
+	return data.pos.y >= windowHeight - data.rec.height;
+}
+
+void updateAnimData(AnimData& data, float deltaTime, int maxFrameRow, int maxFrameCol, int lastCol)
+{
+	data.runningTime += deltaTime;
+	if (data.runningTime >= data.updateTime)
+	{
+		int row = data.frame / maxFrameRow;
+		int col = data.frame % maxFrameCol;
+		if (row == maxFrameRow - 1 && col == lastCol - 1)
+		{
+			data.frame = 0;
+		}
+		data.rec.x = col * data.rec.width;
+		data.rec.y = row * data.rec.height;
+		data.frame++;
+		data.runningTime = 0.0;
+	}
+}
+
 int main()
 {
 	const int windowDimensions[2]{ 512, 380 };
@@ -64,7 +87,7 @@ int main()
 
 		ClearBackground(WHITE);
 
-		if (scarfyData.pos.y > windowDimensions[1] - scarfyData.rec.height)
+		if (isOnGround(scarfyData, windowDimensions[1]))
 		{
 			isInAir = false;
 			velocity = 0;
@@ -86,28 +109,14 @@ int main()
 
 		if (scarfyData.runningTime >= scarfyData.updateTime && !isInAir)
 		{
-			scarfyData.rec.x = (scarfyData.frame % 6) * scarfyData.rec.width;
-			scarfyData.frame++;
-			scarfyData.runningTime = 0;
+			updateAnimData(scarfyData, dT, 1, 6, 6);
 		}
 
 		// Loop to handle nebula calculations
 		for (AnimData& nebula : nebulae)
 		{
 			nebula.pos.x += nebulaVelocity * dT;
-			if (nebula.runningTime >= nebula.updateTime)
-			{
-				int row = nebula.frame / 8;
-				int col = nebula.frame % 8;
-				if (row == 7 && col == 4)
-				{
-					nebula.frame = 0;
-				}
-				nebula.rec.x = col * nebula.rec.width;
-				nebula.rec.y = row * nebula.rec.height;
-				nebula.frame++;
-				nebula.runningTime = 0;
-			}
+			updateAnimData(nebula, dT, 8, 8, 5);
 			DrawTextureRec(nebulaTex, nebula.rec, nebula.pos, RED);
 			nebula.runningTime += dT;
 		}
